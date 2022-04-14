@@ -3,3 +3,6 @@
 .vscode/c_cpp_properties.json
 .vscode/launch.json
 .vscode/ipch
+/cmake-build-megaatmega2560/
+.idea
+/cmake-build-debug/
