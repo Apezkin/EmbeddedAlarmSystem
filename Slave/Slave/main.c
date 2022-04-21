@@ -1,11 +1,7 @@
-/*
- * Slave.c
- *
- * Created: 24.3.2022 10.59.19
- * Author : Aarne
- */ 
-
 #include <avr/io.h>
+#include "delay.h"
+#include "keypad.h"
+#include "stdutils.h"
 
 
 int main(void)
