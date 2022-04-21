@@ -6,3 +6,5 @@
 /cmake-build-atmega328p/
 /cmake-build-debug/
 .idea
+/slave/debug
+/master/debug
