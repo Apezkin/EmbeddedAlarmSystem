@@ -59,6 +59,7 @@ main(void) {
     DDRB &= ~(1 << PB1); //input
     DDRB |= (1 << PB2); //output
 
+    KEYPAD_Init();
     USART_init(MYUBRR);
     stdout = &uart_output;
     stdin = &uart_input;
@@ -73,6 +74,10 @@ main(void) {
 
     while (1)
     {
+
+        printf("read key\n");
+        keypadKey = KEYPAD_GetKey();
+        printf("key read: %c\n", keypadKey);
 
         //sendString();
         motionState = (PINB & (1 << PB1));
