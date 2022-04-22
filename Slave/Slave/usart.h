@@ -10,7 +10,7 @@
 
 void USART_init(uint16_t ubrr);
 
-void USART_Transmit(unsigned char data, FILE *stream);
+int USART_Transmit(char data, FILE *stream);
 
-char USART_Receive(FILE *stream);
+int USART_Receive(FILE *stream);
 #endif //SLAVE_USART_H

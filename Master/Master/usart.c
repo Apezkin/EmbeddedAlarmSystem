@@ -1,7 +1,6 @@
 #include "usart.h"
 
-void
-USART_init(uint16_t ubrr)
+void USART_init(uint16_t ubrr)
 {
     /* Set baud rate in the USART Baud Rate Registers (UBRR) */
     UBRR0H = (unsigned char) (ubrr >> 8);
