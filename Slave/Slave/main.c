@@ -70,18 +70,22 @@ main(void) {
 
     int motionState = 0;
     char keypadKey;
-    char test_char_array[16]; // 16-bit array, assumes that the int given is 16-bits
-    uint8_t twi_index = 0;
-    uint8_t twi_status = 0;
 
-    // Joystick value variables
-    volatile uint16_t x_axis = 0;
-    volatile uint16_t y_axis = 0;
-    volatile bool b_switch = 1;
     while (1)
     {
 
-        sendString();
+        //sendString();
+        motionState = (PINB & (1 << PB1));
+        if (motionState) {
+            PORTB |=  (1 << PB2);
+        } else {
+            PORTB &= ~(1 << PB2);
+        }
+
+        if (keypadKey == '1') {
+            PORTB |= (1 << PB2);
+        }
+
         _delay_ms(1000);
 
     }
