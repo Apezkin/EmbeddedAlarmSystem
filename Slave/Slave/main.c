@@ -13,6 +13,8 @@
 #include "usart.h"
 #include "millis.h"
 
+enum state {Idle, ReadPassword, SendPassword, SendMotionDetected, Fault };
+enum state g_STATE = Idle;
 FILE uart_output = FDEV_SETUP_STREAM(USART_Transmit, NULL, _FDEV_SETUP_WRITE);
 FILE uart_input = FDEV_SETUP_STREAM(NULL, USART_Receive, _FDEV_SETUP_READ);
 
@@ -77,24 +79,30 @@ main(void) {
 
     while (1)
     {
-
-        printf("read key\n");
-        keypadKey = KEYPAD_GetKey(5000);
-        printf("key read: %c\n", keypadKey);
-
-        //sendString();
-        motionState = (PINB & (1 << PB1));
-        if (motionState) {
-            PORTB |=  (1 << PB2);
-        } else {
-            PORTB &= ~(1 << PB2);
+        switch (g_STATE) {
+            case Idle:
+                motionState = (PINB & (1 << PB1));
+                if (motionState) {
+                    g_STATE = SendMotionDetected;
+                } else {
+                }
+                break;
+            case ReadPassword:
+                keypadKey = KEYPAD_GetKey(5000);
+                break;
+            case SendMotionDetected:
+                printf("Motion detected");
+                g_STATE = Idle;
+                //sendString();
+                break;
+            case Fault:
+                break;
+            default:
+                g_STATE = Fault;
+                break;
         }
+        _delay_ms(100);
 
-        if (keypadKey == '1') {
-            PORTB |= (1 << PB2);
-        }
-
-        _delay_ms(1000);
 
     }
 
