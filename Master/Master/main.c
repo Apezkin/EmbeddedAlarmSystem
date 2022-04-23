@@ -9,45 +9,64 @@
 #include "usart.h"
 #include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
-#include <stdbool.h>
 
+enum State {Idle, HandleAlarm, Fail};
+enum State g_STATE = Idle;
 
 volatile unsigned char buffer[6];
 FILE uart_output = FDEV_SETUP_STREAM(USART_Transmit, NULL, _FDEV_SETUP_WRITE);
 FILE uart_input = FDEV_SETUP_STREAM(NULL, USART_Receive, _FDEV_SETUP_READ);
 
-void readToBuffer(char *buffer) {
-    int8_t twi_status;
+void readToBuffer(char *buffer, uint8_t buffer_length) {
+    uint8_t twi_status;
     TWCR = (1 << TWINT) | (1 << TWSTA) | (1 << TWEN);
+    while (!(TWCR & (1 << TWINT)))
+    {
+        ;
+    }
 
-    while (!(TWCR & (1 << TWINT))) { ;
+
+    TWDR = 0b10101011; // load slave address and write command
+    TWCR = (1 << TWINT) | (1 << TWEN);
+
+    while (!(TWCR & ( 1<< TWINT)))
+    {
+        ;
     }
 
     twi_status = (TWSR & 0xF8);
+    for(int8_t twi_data_index = 0; twi_data_index < buffer_length; twi_data_index++)
+    {
 
-
-    TWDR = 0b10101011;
-
-    TWCR = (1 << TWINT) | (1 << TWEN);
-    while (!(TWCR & (1 << TWINT))) {;}
-    twi_status = (TWSR & 0xF8);
-
-    for (int8_t twi_data_index = 0; twi_data_index < 6; twi_data_index++) {
-
-        if ((strlen(buffer) - 1) == twi_data_index) {
+        if((sizeof(buffer) - 1) == twi_data_index)
+        {
             TWCR = (1 << TWINT) | (1 << TWEN);
-            while (!(TWCR & (1 << TWINT))) { ;
+            while (!(TWCR & (1 << TWINT)))
+            {
+                ;
             }
             buffer[twi_data_index] = TWDR;
-        } else {
-            TWCR |= (1 << TWINT) | (1 << TWEA) | (1 << TWEN);
-            while (!(TWCR & (1 << TWINT))) { ;}
-            buffer[twi_data_index] = TWDR;
+        }
+        else
+        {
+            // read data from slave and sent ACK to the slave
+            // wait for the TWINT to set
+
+            TWCR |=  (1 << TWINT) | (1 << TWEA) | (1 << TWEN);
+            //TWCR |= (1 << 7) | (1 << 6) | (1 << 2);
+
+            while (!(TWCR & ( 1<< TWINT)))
+            {
+                ;
+            }
+
+            buffer[twi_data_index] = TWDR; // receive data from data register
+
         }
         twi_status = (TWSR & 0xF8);
     }
-    TWCR = (1 << TWINT) | (1 << TWSTO) | (1 << TWEN);
+
+    TWCR = (1 << TWINT) | (1 << TWSTO) |(1 << TWEN);
 }
 
 int main(void) {
@@ -59,14 +78,6 @@ int main(void) {
     USART_init(MYUBRR);
     stdout = &uart_output;
     stdin = &uart_input;
-    char test_char_array[16]; // 16-bit array, assumes that the int given is 16-bits
-    uint8_t twi_status = 0;
-
-    // Joystick variables
-    volatile uint16_t x_axis = 0;
-    volatile uint16_t y_axis = 0;
-    volatile bool b_switch = 0;
-    volatile unsigned char joystick_data[6];
 
     // Initialize TWI
 
@@ -78,88 +89,17 @@ int main(void) {
 
     while (1)
     {
-
-        // Start transmission by sending START condition
-        TWCR = (1 << TWINT) | (1 << TWSTA) | (1 << TWEN);
-        // TWCR = (1 << 7) | (1 << 5) | (1 << 2);
-
-        // wait for the TWINT to set
-        while (!(TWCR & (1 << TWINT)))
-        {
-            ;
+        switch (g_STATE) {
+            case Idle:
+                break;
+            case Fail:
+                break;
+            case HandleAlarm:
+                break;
+            default:
+                g_STATE = Fail;
         }
-
-
-        TWDR = 0b10101011; // load slave address and write command
-        // Slave address = 85 + read bit '1' as a LSB ---> 171
-
-        // clear TWINT to start transmitting the slave address + write command
-        TWCR = (1 << TWINT) | (1 << TWEN);
-        // TWCR = (1 << 7) | (1 << 2);
-
-        // wait for the TWINT to set
-        while (!(TWCR & ( 1<< TWINT)))
-        {
-            ;
-        }
-
-        // read the status from TWI status register, 0xF8 is used to mask prescaler bits so that
-        // only the status bits are read
-        twi_status = (TWSR & 0xF8);
-
-        itoa(twi_status, test_char_array, 16);
-
-        // receive data from the slave
-        for(int8_t twi_data_index = 0; twi_data_index < sizeof(joystick_data); twi_data_index++)
-        {
-
-            if((sizeof(joystick_data) -1) == twi_data_index)
-            {
-                // Read the last byte from the slave and return NOT ACK
-                // "clear" TWINT to start transmitting the data
-                TWCR = (1 << TWINT) | (1 << TWEN);
-                // TWCR = (1 << 7) | (1 << 2);
-
-                // wait for the TWINT to set
-                while (!(TWCR & (1 << TWINT)))
-                {
-                    ;
-                }
-
-                joystick_data[twi_data_index] = TWDR;
-
-            }
-            else
-            {
-                // read data from slave and sent ACK to the slave
-                // wait for the TWINT to set
-
-                TWCR |=  (1 << TWINT) | (1 << TWEA) | (1 << TWEN);
-                //TWCR |= (1 << 7) | (1 << 6) | (1 << 2);
-
-                while (!(TWCR & ( 1<< TWINT)))
-                {
-                    ;
-                }
-
-                joystick_data[twi_data_index] = TWDR; // receive data from data register
-
-            }
-
-            // read the status from TWI status register, 0xF8 is used to mask prescaler bits so that
-            // only the status bits are read
-            twi_status = (TWSR & 0xF8);
-
-        }
-        printf(joystick_data);
-        printf("\n");
-
-        // stop transmission by sending STOP
-        TWCR = (1 << TWINT) | (1 << TWSTO) |(1 << TWEN);
-        //TWCR = (1 << 7) | (1 << 4) |(1 << 2);
-
-
-        _delay_ms(1000);
+        _delay_ms(100);
 
     }
 
