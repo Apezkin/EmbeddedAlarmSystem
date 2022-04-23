@@ -11,6 +11,7 @@
 #include <stdbool.h>
 #include "keypad.h"
 #include "usart.h"
+#include "millis.h"
 
 FILE uart_output = FDEV_SETUP_STREAM(USART_Transmit, NULL, _FDEV_SETUP_WRITE);
 FILE uart_input = FDEV_SETUP_STREAM(NULL, USART_Receive, _FDEV_SETUP_READ);
@@ -59,10 +60,12 @@ main(void) {
     DDRB &= ~(1 << PB1); //input
     DDRB |= (1 << PB2); //output
 
+    Timer0_Init();
     KEYPAD_Init();
     USART_init(MYUBRR);
     stdout = &uart_output;
     stdin = &uart_input;
+
 
     TWAR = 0b10101010; // same as 170 DEC
 
@@ -76,7 +79,7 @@ main(void) {
     {
 
         printf("read key\n");
-        keypadKey = KEYPAD_GetKey();
+        keypadKey = KEYPAD_GetKey(5000);
         printf("key read: %c\n", keypadKey);
 
         //sendString();

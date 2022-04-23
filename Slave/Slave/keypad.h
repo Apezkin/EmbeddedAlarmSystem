@@ -43,6 +43,7 @@ Errors and omissions should be reported to codelibraries@exploreembedded.com
 
 #include <avr/io.h>
 #include "stdutils.h"
+#include "millis.h"
 
 
 /***************************************************************************************************
@@ -62,8 +63,8 @@ Errors and omissions should be reported to codelibraries@exploreembedded.com
  ***************************************************************************************************/
 void KEYPAD_Init();
 void KEYPAD_WaitForKeyRelease();
-void KEYPAD_WaitForKeyPress();
-uint8_t KEYPAD_GetKey();
+int KEYPAD_WaitForKeyPress(unsigned long timeout);
+uint8_t KEYPAD_GetKey(unsigned long timeout);
 /**************************************************************************************************/
 
 #endif

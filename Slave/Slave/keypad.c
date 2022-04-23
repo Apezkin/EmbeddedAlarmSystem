@@ -148,8 +148,9 @@ void KEYPAD_WaitForKeyRelease()
  * description  : This function waits till a new key is pressed.
                   The new Key pressed can be decoded by the function KEYPAD_GetKey.
  ***************************************************************************************************/
-void KEYPAD_WaitForKeyPress()
+int KEYPAD_WaitForKeyPress(unsigned long timeout)
 {
+    unsigned long start_time = millis();
 	uint8_t var_keyPress_u8;
 	do
 	{
@@ -157,15 +158,25 @@ void KEYPAD_WaitForKeyPress()
 		{
 			M_ROW=0x0F;		  // Pull the ROW lines to low and Column lines high.
 			var_keyPress_u8=M_COL & 0x0F;	  // Read the Columns, to check the key press
-		}while(var_keyPress_u8==0x0F); // Wait till the Key is pressed,
-		// if a Key is pressed the corresponding Column line go low
+            unsigned long time = millis();
+            if (start_time + timeout <= time) {
+                return -1;
+            }
 
-		DELAY_ms(1);		  // Wait for some time(debounce Time);
+        }while(var_keyPress_u8==0x0F); // Wait till the Key is pressed,
+		// if a Key is pressed the corresponding Column line go low
+        unsigned long time = millis();
+        if (start_time + timeout <= time) {
+            return -1;
+        }
+
+        DELAY_ms(1);		  // Wait for some time(debounce Time);
 
 		M_ROW=0x0F;		  // After debounce time, perform the above operation
 		var_keyPress_u8=M_COL & 0x0F;	  // to ensure the Key press.
 
 	}while(var_keyPress_u8==0x0F);
+    return 0;
 }
 
 
@@ -191,14 +202,18 @@ void KEYPAD_WaitForKeyPress()
 				4.Decodes the key pressed depending on ROW-COL combination and returns its
 				  ASCII value.
  ***************************************************************************************************/
-uint8_t KEYPAD_GetKey()
+uint8_t KEYPAD_GetKey(unsigned long timeout)
 {
 	uint8_t var_keyPress_u8;
 
 	KEYPAD_WaitForKeyRelease();    // Wait for the previous key release
 	DELAY_ms(1);
 
-	KEYPAD_WaitForKeyPress();      // Wait for the new key press
+	int x = KEYPAD_WaitForKeyPress(timeout);      // Wait for the new key press
+    if (x == -1)
+    {
+        return 'x';
+    }
 	var_keyPress_u8 = keypad_ScanKey();        // Scan for the key pressed.
 
 	switch(var_keyPress_u8)                       // Decode the key
