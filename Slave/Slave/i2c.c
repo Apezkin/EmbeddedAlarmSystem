@@ -1,5 +1,5 @@
 //
-// Created by aksu-lut on 28.4.2022.
+//https://www.electronicwings.com/avr-atmega/atmega1632-i2c
 //
 
 #include "i2c.h"
