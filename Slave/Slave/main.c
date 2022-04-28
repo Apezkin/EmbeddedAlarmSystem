@@ -24,13 +24,14 @@ FILE uart_output = FDEV_SETUP_STREAM(USART_Transmit, NULL, _FDEV_SETUP_WRITE);
 FILE uart_input = FDEV_SETUP_STREAM(NULL, USART_Receive, _FDEV_SETUP_READ);
 
 
-enum state Get_State_From_char(char receivedChar)
-{
+enum state Get_State_From_char(char receivedChar) {
     enum state state;
     switch (receivedChar) {
-        case 'k': state = ReadKeypad;
+        case 'k':
+            state = ReadKeypad;
             break;
-        case 'm': state = ReadMotionSensor;
+        case 'm':
+            state = ReadMotionSensor;
             break;
         default:
             state = Idle;
@@ -39,18 +40,35 @@ enum state Get_State_From_char(char receivedChar)
     return state;
 }
 
-void check_Motion()
-{
+void check_Motion() {
     uint8_t motionState = (PINB & (1 << PB1));
-    if (motionState && motionSensed != 1)
-    {
+    if (motionState && motionSensed != 1) {
         motionSensed = 1;
-        printf("motion detected");
     }
 }
 
-int
-main(void) {
+void handleMotion() {
+    uint8_t twi_status;
+    switch (I2C_Slave_Listen()) {
+        case SLAVE_WRITE:
+            check_Motion();
+            do {
+                twi_status = I2C_Slave_Transmit(motionSensed);
+            } while (twi_status == 0);
+            motionSensed = 0;
+            g_STATE = Idle;
+            break;
+        case SLAVE_READ:
+            g_STATE = Fault;
+            break;
+        default:
+            g_STATE = Fault;
+            break;
+    }
+
+}
+
+int main(void) {
     DDRB &= ~(1 << PB1); //input
     DDRB |= (1 << PB2); //output
 
@@ -76,39 +94,40 @@ main(void) {
                 switch (I2C_Slave_Listen()) {
                     case SLAVE_READ:
                         I2C_Read_To_Buffer(read_buff, 1);
-                        printf("reading: %c\n", read_buff[0]);
                         g_STATE = Get_State_From_char(read_buff[0]);
                         break;
                     case SLAVE_WRITE:
+                        I2C_Slave_Transmit_Nack('y');
                         break;
                 }
                 break;
             case ReadKeypad:
-                printf("sending keys\n");
-                do {
-                    keypadKey = KEYPAD_GetKey(50);
-                    Ack_status = I2C_Slave_Transmit(keypadKey);
-                } while (Ack_status == 0);
-                g_STATE = Idle;
+                switch (I2C_Slave_Listen()) {
+                    case SLAVE_WRITE:
+                        do {
+                            keypadKey = KEYPAD_GetKey(50);
+                            if(keypadKey != 'x')
+                                printf("%c\n", keypadKey);
+                            Ack_status = I2C_Slave_Transmit(keypadKey);
+                        } while (Ack_status == 0);
+                        g_STATE = Idle;
+                        break;
+                    case SLAVE_READ:
+                        g_STATE = Fault;
+                }
                 break;
             case ReadMotionSensor:
-                printf("sending stuff\n");
-                check_Motion();
-                printf("sending stuff\n");
-                do {
-                    Ack_status = I2C_Slave_Transmit(motionSensed);
-                    printf("sending stuff\n");
-                } while (Ack_status == 0);
-                motionSensed = 0;
-                g_STATE = Idle;
+                handleMotion();
                 break;
             case Fault:
                 g_STATE = Idle;
+                printf("handling fault\n");
                 break;
             default:
                 g_STATE = Fault;
                 break;
         }
+        _delay_ms(10);
 
     }
 }

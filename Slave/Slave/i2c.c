@@ -48,6 +48,29 @@ int8_t I2C_Slave_Transmit(char data) {
     else            /* else return -4 */
         return -4;
 }
+int8_t I2C_Slave_Transmit_Nack(char data) {
+    uint8_t status;
+    TWDR = data;            /* Write data to TWDR to be transmitted */
+    TWCR = (1 << TWEN) | (1 << TWINT);/* Enable TWI & clear interrupt flag */
+    while (!(TWCR & (1 << TWINT)));    /* Wait until TWI finish its current job */
+    status = TWSR & 0xF8;        /* Read TWI status register */
+    if (status == 0xA0)        /* Check for STOP/REPEATED START received */
+    {
+        TWCR |= (1 << TWINT);    /* Clear interrupt flag & return -1 */
+        return -1;
+    }
+    if (status == 0xB8)        /* Check for data transmitted &ack received */
+        return 0;            /* If yes then return 0 */
+    if (status == 0xC0)        /* Check for data transmitted &nack received */
+    {
+        TWCR |= (1 << TWINT);    /* Clear interrupt flag & return -2 */
+        return -2;
+    }
+    if (status == 0xC8)        /* Last byte transmitted with ack received */
+        return -3;            /* If yes then return -3 */
+    else            /* else return -4 */
+        return -4;
+}
 
 char I2C_Slave_Receive() {
     uint8_t status;        /* Declare variable */
@@ -73,7 +96,7 @@ void I2C_Read_To_Buffer(char *buffer, uint8_t count) {
     char k;
     while (1) {
         k = I2C_Slave_Receive();/* Receive data byte*/
-        if (k == -1) {
+        if (k == -1 || k == -2) {
             break;
         }
         if (i < count)

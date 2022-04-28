@@ -28,6 +28,7 @@ char I2C_Read_Ack();
 char I2C_Read_Ack_Timeout(unsigned long timeout);
 char I2C_Read_Nack();
 void I2C_Stop();
+uint8_t I2C_Write(char data);
 
 uint8_t I2C_Write_From_Buffer(char *buffer, uint8_t count);
 void I2C_Read_To_Buffer(char *buffer, uint8_t count);

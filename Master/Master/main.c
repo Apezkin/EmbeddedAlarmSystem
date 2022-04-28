@@ -1,6 +1,7 @@
 #define F_CPU 16000000UL
 #define BAUD 9600
 #define MYUBRR (F_CPU/16/BAUD-1)
+#define ALARM_TIME 15000L
 
 #include <avr/io.h>
 #include <util/delay.h>
@@ -14,7 +15,6 @@
 enum State {Idle, HandleAlarm, Fail, HandleKeypad, HandleMotion};
 enum State g_STATE = Idle;
 
-volatile unsigned char buffer[6];
 FILE uart_output = FDEV_SETUP_STREAM(USART_Transmit, NULL, _FDEV_SETUP_WRITE);
 FILE uart_input = FDEV_SETUP_STREAM(NULL, USART_Receive, _FDEV_SETUP_READ);
 
@@ -29,10 +29,15 @@ int main(void) {
     stdout = &uart_output;
     stdin = &uart_input;
     char key;
+    uint64_t alarm_start;
+    uint64_t alarm_now;
 
     char write_buffer[5] ="km";
     char password_buffer[10];
     uint8_t motionSensed = 0;
+    uint8_t seconds;
+    uint8_t next_second;
+    char seconds_array[5];
 
     lcd_puts("Hello world!");
     uint8_t twi_status;
@@ -42,28 +47,48 @@ int main(void) {
     {
         switch (g_STATE) {
             case Idle:
-                twi_status = I2C_Write_From_Buffer(write_buffer + 1, 1);
-                if (twi_status == TWI_ERROR){
-                    printf("error");
-                    I2C_Stop();
-
-                } else{
-                    g_STATE = HandleMotion;
+                 twi_status = I2C_Start_Write(SLAVE_WRITE_ADDR);
+                if (twi_status == TWI_ERROR || twi_status == TWI_START_FAILED){
+                    printf("error\n");
+                    g_STATE = Fail;
+                    break;
                 }
+                twi_status = I2C_Write('m');
+                if (twi_status != TWI_ACK_RECEIVED){
+                    printf("error\n");
+                    g_STATE = Fail;
+                    break;
+                }
+                I2C_Stop();
+                g_STATE = HandleMotion;
+
                 break;
             case Fail:
+                I2C_Stop();
+                I2C_Init();
+                g_STATE = Idle;
                 break;
             case HandleAlarm:
                 break;
             case HandleMotion:
-                I2C_Start_Read(SLAVE_READ_ADDR);
-                _delay_ms(5);
+                twi_status = I2C_Start_Read(SLAVE_READ_ADDR);
+                if (twi_status != TWI_ACK_RECEIVED){
+                    g_STATE = Fail;
+                    break;
+                }
+                //_delay_ms(5);
                 motionSensed = I2C_Read_Ack();
+                if (motionSensed == 'y'){
+                    g_STATE = Fail;
+                    break;
+                }
+                //_delay_ms(5);
                 I2C_Read_Nack();
                 I2C_Stop();
 
                 if (motionSensed == 1){
                     g_STATE = HandleKeypad;
+                    alarm_start = millis();
                     PORTE |= (1<<PE4);
 
                 }
@@ -74,17 +99,49 @@ int main(void) {
                 }
                 break;
             case HandleKeypad:
-                _delay_ms(50);
-                I2C_Write_From_Buffer(write_buffer, 1);
-                _delay_ms(50);
-                I2C_Start_Read(SLAVE_READ_ADDR);
+                seconds = ALARM_TIME/ 1000;
+                lcd_clrscr();
+                lcd_puts("Alarm in: ");
+                lcd_gotoxy(11,0);
+                itoa(seconds, seconds_array, 9);
+                lcd_puts(seconds_array);
+
+                twi_status = I2C_Start_Write(SLAVE_WRITE_ADDR);
+                if (twi_status != TWI_ACK_RECEIVED){
+                    printf("error\n");
+                    g_STATE = Fail;
+                    break;
+                }
+                twi_status = I2C_Write('k');
+                if (twi_status != TWI_ACK_RECEIVED){
+                    printf("error\n");
+                    g_STATE = Fail;
+                    break;
+                }
+                I2C_Stop();
+                twi_status = I2C_Start_Read(SLAVE_READ_ADDR);
+                if (twi_status != TWI_ACK_RECEIVED){
+                    printf("Error starting reading keys.\n");
+                    g_STATE = Idle;
+                    I2C_Stop();
+                    continue;
+                }
 
                 uint8_t i = 0;
                 while(i < 4)
                 {
                     key = I2C_Read_Ack();
+                    alarm_now = millis();
+                    next_second = (ALARM_TIME - (alarm_now - alarm_start))/1000;
+                    if (next_second != seconds){
+                        itoa(next_second,seconds_array,9);
+                        seconds = next_second;
+                        lcd_gotoxy(11, 0);
+                        lcd_puts(seconds_array);
+                    }
                     if (key == 'x')
                         continue;
+
                     password_buffer[i] = key;
                     password_buffer[i+1] = '\0';
                     lcd_gotoxy(0,1);
@@ -98,7 +155,7 @@ int main(void) {
             default:
                 g_STATE = Fail;
         }
-        _delay_ms(5);
+        _delay_ms(10);
 
     }
 

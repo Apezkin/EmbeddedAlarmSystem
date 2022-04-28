@@ -14,6 +14,7 @@ void I2C_Slave_Init(char slave_address);
 
 int8_t I2C_Slave_Listen();
 int8_t I2C_Slave_Transmit(char data);
+int8_t I2C_Slave_Transmit_Nack(char data);
 
 char I2C_Slave_Receive();
 
