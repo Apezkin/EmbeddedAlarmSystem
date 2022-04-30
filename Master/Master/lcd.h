@@ -137,7 +137,7 @@
 #define LCD_DATA1_PORT   PORTG     /**< port for 4bit data bit 1 */
 #endif
 #ifndef LCD_DATA2_PORT
-#define LCD_DATA2_PORT   PORTE     /**< port for 4bit data bit 2 */
+#define LCD_DATA2_PORT   PORTH     /**< port for 4bit data bit 2 */
 #endif
 #ifndef LCD_DATA3_PORT
 #define LCD_DATA3_PORT   PORTH     /**< port for 4bit data bit 3 */
@@ -152,7 +152,7 @@
 #define LCD_DATA2_PIN    3            /**< pin for 4bit data bit 2  */
 #endif
 #ifndef LCD_DATA3_PIN
-#define LCD_DATA3_PIN    3            /**< pin for 4bit data bit 3  */
+#define LCD_DATA3_PIN    4            /**< pin for 4bit data bit 3  */
 #endif
 #ifndef LCD_RS_PORT
 #define LCD_RS_PORT      PORTH     /**< port for RS line         */

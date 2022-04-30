@@ -1,7 +1,7 @@
 #define F_CPU 16000000UL
 #define BAUD 9600
 #define MYUBRR (F_CPU/16/BAUD-1)
-#define ALARM_TIME 15000L
+#define ALARM_TIME 3000L
 
 #include <avr/io.h>
 #include <util/delay.h>
@@ -11,7 +11,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <avr/interrupt.h>
 #include "millis.h"
+#include "buzzer.h"
 
 enum State {
     Idle, StartAlarm, StopAlarm, Fail, HandleKeypad, HandleMotion, WrongPassword, KeyPadTimeout, TooLongPassword
@@ -23,12 +25,14 @@ FILE uart_input = FDEV_SETUP_STREAM(NULL, USART_Receive, _FDEV_SETUP_READ);
 
 
 int main(void) {
-    DDRE |= (1 << PE4); //output
+    DDRE |= (1 << PE3); //output
+    sei();
 
     lcd_init(LCD_DISP_ON);
     USART_init(MYUBRR);
     I2C_Init();
     Timer2_Init();
+    Buzzer_Init();
     stdout = &uart_output;
     stdin = &uart_input;
     char key;
@@ -44,11 +48,14 @@ int main(void) {
 
     lcd_puts("Hello world!");
     uint8_t twi_status;
+    printf("acaa");
+    printf("acaa");
 
 
     while (1) {
         switch (g_STATE) {
             case Idle:
+                printf("bbbb");
                 twi_status = I2C_Start_Write(SLAVE_WRITE_ADDR);
                 if (twi_status == TWI_ERROR || twi_status == TWI_START_FAILED) {
                     printf("error\n");
@@ -71,11 +78,14 @@ int main(void) {
                 g_STATE = Idle;
                 break;
             case StartAlarm:
-                PORTE |= (1 << PE4);
+                //PORTE |= (1 << PE3);
+                lcd_puts("Alarm stopped!");
+                Start_Buzzing();
                 g_STATE = HandleKeypad;
                 break;
             case StopAlarm:
-                PORTE &= ~(1 << PE4);
+                //PORTE &= ~(1 << PE3);
+                Stop_Buzzing();
                 lcd_clrscr();
                 lcd_puts("Alarm stopped!");
                 _delay_ms(1000);

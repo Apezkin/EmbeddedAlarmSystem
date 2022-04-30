@@ -22,5 +22,4 @@ void Timer2_Init(void) {
     TCCR2B = _BV(CS22);
     TIMSK2 = _BV(OCIE2A); //Set TOIE bit
     OCR2A = ((F_CPU / 64) / 1000);
-    sei();
 }
