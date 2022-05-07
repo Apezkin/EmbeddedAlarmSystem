@@ -107,7 +107,6 @@ int main(void) {
                         do {
                             keypadKey = KEYPAD_GetKey(50);
                             if(keypadKey != 'x')
-                                printf("%c\n", keypadKey);
                             Ack_status = I2C_Slave_Transmit(keypadKey);
                         } while (Ack_status == 0);
                         g_STATE = Idle;

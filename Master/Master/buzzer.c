@@ -7,7 +7,7 @@
 #include <avr/interrupt.h>
 
 ISR(TIMER1_COMPA_vect){
-    PORTE |= (1 << PE3);
+    PORTE ^= (1 << PE3);
     sei();
 }
 
