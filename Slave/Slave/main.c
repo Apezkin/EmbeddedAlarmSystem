@@ -16,7 +16,7 @@
 #include "i2c.h"
 
 enum state {
-    Idle, ReadKeypad, SendPassword, ReadMotionSensor, Fault
+    Idle, ReadKeypad, ReadMotionSensor, Fault
 };
 enum state g_STATE = Idle;
 volatile uint8_t motionSensed = 0;
