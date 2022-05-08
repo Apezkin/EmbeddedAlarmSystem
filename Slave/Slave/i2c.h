@@ -18,5 +18,4 @@ int8_t I2C_Slave_Transmit_Nack(char data);
 
 char I2C_Slave_Receive();
 
-void I2C_Read_To_Buffer(char *buffer, uint8_t count);
 #endif //SLAVE_I2C_H

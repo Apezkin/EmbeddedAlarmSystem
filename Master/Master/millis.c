@@ -18,8 +18,8 @@ unsigned long int millis(void) {
 // Help from:
 // https://github.com/bendebled/avr-atmega328p-millis/blob/master/millis.c
 void Timer2_Init(void) {
-    TCCR2A = _BV(WGM21); //Init Timer0, normal, prescalar = 1024
-    TCCR2B = _BV(CS22);
-    TIMSK2 = _BV(OCIE2A); //Set TOIE bit
+    TCCR2A = (1 << WGM21); //Init Timer0, normal, prescalar = 1024
+    TCCR2B = (1 << CS22);
+    TIMSK2 = (1 << OCIE2A); //enable compA interrupt
     OCR2A = ((F_CPU / 64) / 1000);
 }

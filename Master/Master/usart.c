@@ -1,5 +1,6 @@
 #include "usart.h"
 
+//inits UART 0.
 void USART_init(uint16_t ubrr)
 {
     /* Set baud rate in the USART Baud Rate Registers (UBRR) */
@@ -17,10 +18,7 @@ void USART_init(uint16_t ubrr)
 int USART_Transmit(char data, FILE *stream)
 {
     /* Wait until the transmit buffer is empty*/
-    while(!(UCSR0A & (1 << UDRE0)))
-    {
-        ;
-    }
+    while(!(UCSR0A & (1 << UDRE0)));
 
     /* Puts the data into a buffer, then sends/transmits the data */
     UDR0 = data;
@@ -29,10 +27,7 @@ int USART_Transmit(char data, FILE *stream)
 int USART_Receive(FILE *stream)
 {
     /* Wait until the transmit buffer is empty*/
-    while(!(UCSR0A & (1 << UDRE0)))
-    {
-        ;
-    }
+    while(!(UCSR0A & (1 << UDRE0)));
 
     /* Get the received data from the buffer */
     return UDR0;

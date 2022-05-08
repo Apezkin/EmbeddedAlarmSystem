@@ -5,8 +5,6 @@
 #ifndef MASTER_MILLIS_H
 #define MASTER_MILLIS_H
 
-
-
 unsigned long int millis(void);
 
 void Timer2_Init(void);

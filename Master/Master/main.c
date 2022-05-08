@@ -3,6 +3,13 @@
 #define MYUBRR (F_CPU/16/BAUD-1)
 #define ALARM_TIME 3000L
 
+#define KEYPAD_READ_COMMAND 'k'
+#define KEYPAD_KEY_TIMEOUT 'x'
+#define KEYPAD_KEY_BACKSPACE 'C'
+#define KEYPAD_KEY_ENTER '#'
+
+#define MOTION_READ_COMMAND 'm'
+
 #include <avr/io.h>
 #include <util/delay.h>
 #include "lcd.h"
@@ -16,7 +23,7 @@
 #include "buzzer.h"
 
 enum State {
-    Idle, StartAlarm, StopAlarm, Fail, HandleKeypad, HandleMotion, WrongPassword, KeyPadTimeout, TooLongPassword
+    Idle, StartAlarm, StopAlarm, Fail, HandleKeypad, readMotion, WrongPassword, KeyPadTimeout, TooLongPassword
 };
 enum State g_STATE = Idle;
 
@@ -24,8 +31,13 @@ FILE uart_output = FDEV_SETUP_STREAM(USART_Transmit, NULL, _FDEV_SETUP_WRITE);
 FILE uart_input = FDEV_SETUP_STREAM(NULL, USART_Receive, _FDEV_SETUP_READ);
 
 
+int8_t password_handle_key(char *buffer, uint8_t *index);
+
+void password_handle();
+
+
 int main(void) {
-    DDRE |= (1 << PE3); //output
+    DDRE |= (1 << PE3);
     sei();
 
     lcd_init(LCD_DISP_ON);
@@ -35,41 +47,19 @@ int main(void) {
     Buzzer_Init();
     stdout = &uart_output;
     stdin = &uart_input;
-    char key;
-    uint64_t alarm_start;
-    uint64_t alarm_now;
 
-    char password_buffer[10];
-    uint8_t motionSensed = 0;
-    uint8_t seconds;
-    uint8_t next_second;
-    char seconds_array[5];
-    char password[] = "0000";
-
+    uint8_t motionSensed;
     lcd_puts("Hello world!");
     uint8_t twi_status;
-    printf("acaa");
-    printf("acaa");
 
 
     while (1) {
         switch (g_STATE) {
             case Idle:
-                printf("bbbb");
-                twi_status = I2C_Start_Write(SLAVE_WRITE_ADDR);
-                if (twi_status == TWI_ERROR || twi_status == TWI_START_FAILED) {
+                if (I2C_command_write(MOTION_READ_COMMAND) == TWI_OK) {
                     printf("error\n");
                     g_STATE = Fail;
-                    break;
-                }
-                twi_status = I2C_Write('m');
-                if (twi_status != TWI_ACK_RECEIVED) {
-                    printf("error\n");
-                    g_STATE = Fail;
-                    break;
-                }
-                I2C_Stop();
-                g_STATE = HandleMotion;
+                } else { g_STATE = readMotion; }
 
                 break;
             case Fail:
@@ -78,20 +68,18 @@ int main(void) {
                 g_STATE = Idle;
                 break;
             case StartAlarm:
-                //PORTE |= (1 << PE3);
                 lcd_puts("Alarm stopped!");
                 Start_Buzzing();
                 g_STATE = HandleKeypad;
                 break;
             case StopAlarm:
-                //PORTE &= ~(1 << PE3);
                 Stop_Buzzing();
                 lcd_clrscr();
                 lcd_puts("Alarm stopped!");
                 _delay_ms(1000);
                 g_STATE = Idle;
                 break;
-            case HandleMotion:
+            case readMotion:
                 twi_status = I2C_Start_Read(SLAVE_READ_ADDR);
                 if (twi_status != TWI_ACK_RECEIVED) {
                     g_STATE = Fail;
@@ -111,84 +99,7 @@ int main(void) {
                     g_STATE = Idle;
                 break;
             case HandleKeypad:
-                alarm_start = millis();
-                seconds = ALARM_TIME / 1000;
-                lcd_clrscr();
-                lcd_puts("Alarm in: ");
-                lcd_gotoxy(11, 0);
-                itoa(seconds, seconds_array, 9);
-                lcd_puts(seconds_array);
-
-                twi_status = I2C_Start_Write(SLAVE_WRITE_ADDR);
-                if (twi_status != TWI_ACK_RECEIVED) {
-                    printf("error\n");
-                    g_STATE = Fail;
-                    break;
-                }
-                twi_status = I2C_Write('k');
-                if (twi_status != TWI_ACK_RECEIVED) {
-                    printf("error\n");
-                    g_STATE = Fail;
-                    break;
-                }
-                I2C_Stop();
-                twi_status = I2C_Start_Read(SLAVE_READ_ADDR);
-                if (twi_status != TWI_ACK_RECEIVED) {
-                    printf("Error starting reading keys.\n");
-                    g_STATE = Idle;
-                    I2C_Stop();
-                    continue;
-                }
-
-                uint8_t i = 0;
-                while (1) {
-                    key = I2C_Read_Ack();
-                    alarm_now = millis();
-                    next_second = (ALARM_TIME - (alarm_now - alarm_start)) / 1000;
-                    if (alarm_now > alarm_start + ALARM_TIME){
-                        I2C_Read_Nack();
-                        I2C_Stop();
-                        g_STATE = KeyPadTimeout;
-                        break;
-                    }
-                    if (next_second != seconds) {
-                        itoa(next_second, seconds_array, 9);
-                        seconds = next_second;
-                        lcd_gotoxy(11, 0);
-                        lcd_puts(seconds_array);
-                        lcd_puts("   ");
-                    }
-                    if (key == 'x')
-                        continue;
-                    alarm_start = millis();
-                    if (key == 'C') {
-                        i--;
-                        password_buffer[i] = '\0';
-                    } else if (key == '#') {
-                        I2C_Read_Nack();
-                        I2C_Stop();
-                        if (strcmp(password_buffer, password) == 0) {
-                            g_STATE = StopAlarm;
-
-                        } else {
-                            g_STATE = WrongPassword;
-                        }
-                        break;
-                    } else {
-                        if (i > 9) {
-                            g_STATE = TooLongPassword;
-                            I2C_Read_Nack();
-                            I2C_Stop();
-                            break;
-                        }
-                        password_buffer[i] = key;
-                        password_buffer[i + 1] = '\0';
-                        i++;
-                    }
-                    lcd_gotoxy(0, 1);
-                    lcd_puts(password_buffer);
-                    lcd_puts("   ");
-                }
+                password_handle();
                 break;
             case WrongPassword:
                 lcd_clrscr();
@@ -199,7 +110,7 @@ int main(void) {
             case TooLongPassword:
                 lcd_clrscr();
                 lcd_puts("Too long");
-                lcd_gotoxy(0,1);
+                lcd_gotoxy(0, 1);
                 lcd_puts("password!");
                 _delay_ms(1000);
                 g_STATE = HandleKeypad;
@@ -215,8 +126,94 @@ int main(void) {
                 g_STATE = Fail;
         }
         _delay_ms(10);
+    }
+}
 
+
+void password_handle() {
+    uint64_t alarm_now;
+    char password_buffer[10];
+    uint8_t seconds;
+    uint8_t next_second;
+    char seconds_array[5];
+    char password[] = "0000";
+    uint8_t twi_status;
+    int8_t key_read_status;
+    uint32_t alarm_start = millis();
+    seconds = ALARM_TIME / 1000;
+    lcd_clrscr();
+    lcd_puts("Alarm in: ");
+    lcd_gotoxy(11, 0);
+    itoa(seconds, seconds_array, 9);
+    lcd_puts(seconds_array);
+
+    if (I2C_command_write(KEYPAD_READ_COMMAND) != TWI_OK) {
+        printf("Error writing keypad read command.\n");
+        g_STATE = Fail;
+    } else { g_STATE = readMotion; }
+
+    twi_status = I2C_Start_Read(SLAVE_READ_ADDR);
+    if (twi_status != TWI_ACK_RECEIVED) {
+        printf("Error starting reading keys.\n");
+        g_STATE = Fail;
+        return;
     }
 
-    return 0;
+    uint8_t i = 0;
+    while ((key_read_status = password_handle_key(password_buffer, &i)) == 0) {
+        alarm_now = millis();
+        next_second = (ALARM_TIME - (alarm_now - alarm_start)) / 1000;
+        if (alarm_now > alarm_start + ALARM_TIME) {
+            I2C_Read_Nack();
+            I2C_Stop();
+            g_STATE = KeyPadTimeout;
+            break;
+        }
+        if (next_second != seconds) {
+            itoa(next_second, seconds_array, 9);
+            seconds = next_second;
+            lcd_gotoxy(11, 0);
+            lcd_puts(seconds_array);
+            lcd_puts("   ");
+        }
+        lcd_gotoxy(0, 1);
+        lcd_puts(password_buffer);
+        lcd_puts("   ");
+    }
+    I2C_Read_Nack();
+    I2C_Stop();
+    if (key_read_status == 1) {
+        if (strcmp(password_buffer, password) == 0) {
+            g_STATE = StopAlarm;
+        } else {
+            g_STATE = WrongPassword;
+        }
+    } else {
+        g_STATE = TooLongPassword;
+    }
+}
+
+int8_t password_handle_key(char *buffer, uint8_t *index) {
+    if (*index > 9) { return -2; }
+    char key;
+    int8_t status;
+    switch (key = I2C_Read_Ack()) {
+        case KEYPAD_KEY_TIMEOUT:
+            status = 0;
+            break;
+        case KEYPAD_KEY_BACKSPACE:
+            *index = *index - 1;
+            buffer[*index] = '\0';
+            status = 0;
+            break;
+        case KEYPAD_KEY_ENTER:
+            status = 1;
+        default:
+            buffer[*index] = key;
+            buffer[*index + 1] = '\0';
+            *index = *index + 1;
+            status = 0;
+            break;
+    }
+    return status;
 }
