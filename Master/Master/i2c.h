@@ -27,7 +27,7 @@
  @param   none
  @return  none
 */
-void I2C_Init();
+void I2C_init();
 
 /**
  @brief    Starts writing to the slave.
@@ -39,7 +39,7 @@ void I2C_Init();
                     \b TWI_START_FAILED Failed to start. \n
                     \b TWI_ERROR unexpected error. \n
 */
-uint8_t I2C_Start_Write(char slave_write_addr);
+uint8_t I2C_write_start(char slave_write_addr);
 
 /**
  @brief    Starts reading from the slave.
@@ -50,7 +50,7 @@ uint8_t I2C_Start_Write(char slave_write_addr);
                     \b TWI_START_FAILED Failed to start. \n
                     \b TWI_ERROR unexpected error. \n
 */
-uint8_t I2C_Start_Read(char slave_read_addr);
+uint8_t I2C_read_start(char slave_read_addr);
 
 /**
  @brief   Reads character and responses with ACK.
@@ -58,7 +58,7 @@ uint8_t I2C_Start_Read(char slave_read_addr);
  @param   none
  @return  data  character from slave.
 */
-char I2C_Read_Ack();
+char I2C_read_ack();
 
 /**
  @brief   Reads character and responses with NACK.
@@ -66,7 +66,7 @@ char I2C_Read_Ack();
  @param   none
  @return  data  character from slave.
 */
-char I2C_Read_Nack();
+char I2C_read_nack();
 
 
 /**
@@ -75,7 +75,7 @@ char I2C_Read_Nack();
  @param   none
  @return  none
 */
-void I2C_Stop();
+void I2C_stop();
 
 /**
  @brief    Sends byte.
@@ -86,7 +86,7 @@ void I2C_Stop();
                     \b TWI_NACK_RECEIVED was able to send the byte and received NACK from slave. \n
                     \b TWI_ERROR error sending byte \n
 */
-uint8_t I2C_Write(char data);
+uint8_t I2C_write(char data);
 
 /**
  @brief    Send command (=character) to defined slave address.

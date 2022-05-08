@@ -8,6 +8,11 @@
 #define KEYPAD_KEY_BACKSPACE 'C'
 #define KEYPAD_KEY_ENTER '#'
 
+#define PWD_KEY_STOP 1
+#define PWD_KEY_INDEX_ERR -2
+#define PWD_KEY_CONTINUE 0
+#define PWD_MAX_LENGTH 9
+
 #define MOTION_READ_COMMAND 'm'
 
 #include <avr/io.h>
@@ -42,14 +47,13 @@ int main(void) {
 
     lcd_init(LCD_DISP_ON);
     USART_init(MYUBRR);
-    I2C_Init();
-    Timer2_Init();
-    Buzzer_Init();
+    I2C_init();
+    timer2_init();
+    buzzer_init();
     stdout = &uart_output;
     stdin = &uart_input;
 
-    uint8_t motionSensed;
-    lcd_puts("Hello world!");
+    uint8_t motion_sensed;
     uint8_t twi_status;
 
 
@@ -63,12 +67,11 @@ int main(void) {
 
                 break;
             case Fail:
-                I2C_Stop();
-                I2C_Init();
+                I2C_stop();
+                I2C_init();
                 g_STATE = Idle;
                 break;
             case StartAlarm:
-                lcd_puts("Alarm stopped!");
                 Start_Buzzing();
                 g_STATE = HandleKeypad;
                 break;
@@ -80,20 +83,20 @@ int main(void) {
                 g_STATE = Idle;
                 break;
             case readMotion:
-                twi_status = I2C_Start_Read(SLAVE_READ_ADDR);
+                twi_status = I2C_read_start(SLAVE_READ_ADDR);
                 if (twi_status != TWI_ACK_RECEIVED) {
                     g_STATE = Fail;
                     break;
                 }
-                motionSensed = I2C_Read_Ack();
-                if (motionSensed == 'y') {
+                motion_sensed = I2C_read_ack();
+                if (motion_sensed == 'y') {
                     g_STATE = Fail;
                     break;
                 }
-                I2C_Read_Nack();
-                I2C_Stop();
+                I2C_read_nack();
+                I2C_stop();
 
-                if (motionSensed == 1)
+                if (motion_sensed == 1)
                     g_STATE = StartAlarm;
                 else
                     g_STATE = Idle;
@@ -152,7 +155,7 @@ void password_handle() {
         g_STATE = Fail;
     } else { g_STATE = readMotion; }
 
-    twi_status = I2C_Start_Read(SLAVE_READ_ADDR);
+    twi_status = I2C_read_start(SLAVE_READ_ADDR);
     if (twi_status != TWI_ACK_RECEIVED) {
         printf("Error starting reading keys.\n");
         g_STATE = Fail;
@@ -160,12 +163,12 @@ void password_handle() {
     }
 
     uint8_t i = 0;
-    while ((key_read_status = password_handle_key(password_buffer, &i)) == 0) {
+    while ((key_read_status = password_handle_key(password_buffer, &i)) == PWD_KEY_CONTINUE) {
         alarm_now = millis();
         next_second = (ALARM_TIME - (alarm_now - alarm_start)) / 1000;
         if (alarm_now > alarm_start + ALARM_TIME) {
-            I2C_Read_Nack();
-            I2C_Stop();
+            I2C_read_nack();
+            I2C_stop();
             g_STATE = KeyPadTimeout;
             break;
         }
@@ -180,39 +183,39 @@ void password_handle() {
         lcd_puts(password_buffer);
         lcd_puts("   ");
     }
-    I2C_Read_Nack();
-    I2C_Stop();
-    if (key_read_status == 1) {
+    I2C_read_nack();
+    I2C_stop();
+    if (key_read_status == PWD_KEY_STOP) {
         if (strcmp(password_buffer, password) == 0) {
             g_STATE = StopAlarm;
         } else {
             g_STATE = WrongPassword;
         }
-    } else {
+    } else if (key_read_status == PWD_KEY_INDEX_ERR) {
         g_STATE = TooLongPassword;
     }
 }
 
 int8_t password_handle_key(char *buffer, uint8_t *index) {
-    if (*index > 9) { return -2; }
+    if (*index > PWD_MAX_LENGTH) { return PWD_KEY_INDEX_ERR; }
     char key;
     int8_t status;
-    switch (key = I2C_Read_Ack()) {
+    switch (key = I2C_read_ack()) {
         case KEYPAD_KEY_TIMEOUT:
-            status = 0;
+            status = PWD_KEY_CONTINUE;
             break;
         case KEYPAD_KEY_BACKSPACE:
             *index = *index - 1;
             buffer[*index] = '\0';
-            status = 0;
+            status = PWD_KEY_CONTINUE;
             break;
         case KEYPAD_KEY_ENTER:
-            status = 1;
+            status = PWD_KEY_STOP;
         default:
             buffer[*index] = key;
             buffer[*index + 1] = '\0';
             *index = *index + 1;
-            status = 0;
+            status = PWD_KEY_CONTINUE;
             break;
     }
     return status;

@@ -13,7 +13,7 @@ ISR(TIMER1_COMPA_vect){
     sei();
 }
 
-void Buzzer_Init() {
+void buzzer_init() {
 
     //clean clock
     TCCR1A = 0;
