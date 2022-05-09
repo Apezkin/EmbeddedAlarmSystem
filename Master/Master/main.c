@@ -1,7 +1,7 @@
 #define F_CPU 16000000UL
 #define BAUD 9600
 #define MYUBRR (F_CPU/16/BAUD-1)
-#define ALARM_TIME 3000L
+#define ALARM_TIME 5000L
 
 #define KEYPAD_READ_COMMAND 'k'
 #define KEYPAD_KEY_TIMEOUT 'x'
@@ -10,6 +10,7 @@
 
 #define PWD_KEY_STOP 1
 #define PWD_KEY_INDEX_ERR -2
+#define PWD_KEY_TIMEOUT -1
 #define PWD_KEY_CONTINUE 0
 #define PWD_MAX_LENGTH 9
 
@@ -52,6 +53,8 @@ int main(void) {
     buzzer_init();
     stdout = &uart_output;
     stdin = &uart_input;
+    lcd_clrscr();
+    lcd_puts("Detecting...");
 
     uint8_t motion_sensed;
     uint8_t twi_status;
@@ -60,11 +63,12 @@ int main(void) {
     while (1) {
         switch (g_STATE) {
             case Idle:
-                if (I2C_command_write(MOTION_READ_COMMAND) == TWI_OK) {
+                if (I2C_command_write(MOTION_READ_COMMAND) != TWI_OK) {
                     printf("error\n");
                     g_STATE = Fail;
-                } else { g_STATE = readMotion; }
-
+                } else {
+                    g_STATE = readMotion;
+                }
                 break;
             case Fail:
                 I2C_stop();
@@ -73,6 +77,8 @@ int main(void) {
                 break;
             case StartAlarm:
                 Start_Buzzing();
+                lcd_clrscr();
+                lcd_puts("Alarm");
                 g_STATE = HandleKeypad;
                 break;
             case StopAlarm:
@@ -80,6 +86,8 @@ int main(void) {
                 lcd_clrscr();
                 lcd_puts("Alarm stopped!");
                 _delay_ms(1000);
+                lcd_clrscr();
+                lcd_puts("Detecting...");
                 g_STATE = Idle;
                 break;
             case readMotion:
@@ -96,10 +104,11 @@ int main(void) {
                 I2C_read_nack();
                 I2C_stop();
 
-                if (motion_sensed == 1)
+                if (motion_sensed == 1) {
                     g_STATE = StartAlarm;
-                else
+                } else {
                     g_STATE = Idle;
+                }
                 break;
             case HandleKeypad:
                 password_handle();
@@ -132,12 +141,22 @@ int main(void) {
     }
 }
 
+void lcd_second_handler(uint8_t *seconds, uint8_t x, uint8_t y, uint32_t alarm_now, uint32_t alarm_start) {
+    uint8_t next_second = (ALARM_TIME - (alarm_now - alarm_start)) / 1000;
+    char seconds_array[5];
+    if (next_second != *seconds) {
+        itoa(next_second, seconds_array, 9);
+        seconds = next_second;
+        lcd_gotoxy(x, y);
+        lcd_puts(seconds_array);
+        lcd_puts("   ");
+    }
+}
 
 void password_handle() {
     uint64_t alarm_now;
-    char password_buffer[10];
+    char password_buffer[10] = {'\0'};
     uint8_t seconds;
-    uint8_t next_second;
     char seconds_array[5];
     char password[] = "0000";
     uint8_t twi_status;
@@ -163,22 +182,20 @@ void password_handle() {
     }
 
     uint8_t i = 0;
-    while ((key_read_status = password_handle_key(password_buffer, &i)) == PWD_KEY_CONTINUE) {
+    while (1) {
         alarm_now = millis();
-        next_second = (ALARM_TIME - (alarm_now - alarm_start)) / 1000;
+        lcd_second_handler(&seconds, 11, 0, alarm_now, alarm_start);
         if (alarm_now > alarm_start + ALARM_TIME) {
             I2C_read_nack();
             I2C_stop();
             g_STATE = KeyPadTimeout;
+            return;
+        }
+        key_read_status = password_handle_key(password_buffer, &i);
+        if (key_read_status == PWD_KEY_INDEX_ERR || key_read_status == PWD_KEY_STOP) {
             break;
-        }
-        if (next_second != seconds) {
-            itoa(next_second, seconds_array, 9);
-            seconds = next_second;
-            lcd_gotoxy(11, 0);
-            lcd_puts(seconds_array);
-            lcd_puts("   ");
-        }
+        } else if (key_read_status != PWD_KEY_TIMEOUT) alarm_start = millis();
+
         lcd_gotoxy(0, 1);
         lcd_puts(password_buffer);
         lcd_puts("   ");
@@ -191,7 +208,7 @@ void password_handle() {
         } else {
             g_STATE = WrongPassword;
         }
-    } else if (key_read_status == PWD_KEY_INDEX_ERR) {
+    } else {
         g_STATE = TooLongPassword;
     }
 }
@@ -202,7 +219,7 @@ int8_t password_handle_key(char *buffer, uint8_t *index) {
     int8_t status;
     switch (key = I2C_read_ack()) {
         case KEYPAD_KEY_TIMEOUT:
-            status = PWD_KEY_CONTINUE;
+            status = PWD_KEY_TIMEOUT;
             break;
         case KEYPAD_KEY_BACKSPACE:
             *index = *index - 1;
@@ -211,6 +228,7 @@ int8_t password_handle_key(char *buffer, uint8_t *index) {
             break;
         case KEYPAD_KEY_ENTER:
             status = PWD_KEY_STOP;
+            break;
         default:
             buffer[*index] = key;
             buffer[*index + 1] = '\0';
