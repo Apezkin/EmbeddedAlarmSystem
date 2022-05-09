@@ -55,15 +55,25 @@ Errors and omissions should be reported to codelibraries@exploreembedded.com
 #define C_RowOutputColInput_U8 0xf0	 //value to configure Rows as Output and Columns as Input
 /**************************************************************************************************/
 
+#define KEYPAD_TIMEOUT_CHAR 'x'
+
 
 
 
 /***************************************************************************************************
                              Function Prototypes
  ***************************************************************************************************/
-void KEYPAD_Init();
+void KEYPAD_init();
 void KEYPAD_WaitForKeyRelease();
 int KEYPAD_WaitForKeyPress(unsigned long timeout);
+
+/**
+ @brief    Reads Key. if times out, returns KEYPAD_TIMEOUT_CHAR.
+
+ @param    timeout when it should stop reading keypad.
+ @return   \b KEYPAD_TIMEOUT_CHAR timeout key. \n
+           \b otherwise returns key from keypad. \n
+*/
 uint8_t KEYPAD_GetKey(unsigned long timeout);
 /**************************************************************************************************/
 

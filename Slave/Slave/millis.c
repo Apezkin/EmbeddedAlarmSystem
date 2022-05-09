@@ -13,12 +13,12 @@ ISR(TIMER2_COMPA_vect) {
 unsigned long int millis(void) {
     return ms;
 }
+
 // Help from:
 // https://github.com/bendebled/avr-atmega328p-millis/blob/master/millis.c
-void Timer0_Init(void) {
-    TCCR2A = _BV(WGM21); //Init Timer0, normal, prescalar = 1024
-    TCCR2B = _BV(CS22);
-    TIMSK2 = _BV(OCIE2A); //Set TOIE bit
+void MILLIS_init(void) {
+    TCCR2A = (1 << WGM21);
+    TCCR2B = (1 << CS22);
+    TIMSK2 = (1 << OCIE2A);
     OCR2A = ((F_CPU / 64) / 1000);
-    sei();
 }

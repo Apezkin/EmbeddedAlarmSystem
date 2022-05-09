@@ -9,7 +9,7 @@
  @brief   gets time from the start of the program.
 
  @param   none
- @return  time in ms
+ @return  time in ms.
 */
 unsigned long int millis(void);
 

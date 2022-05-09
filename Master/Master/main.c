@@ -37,7 +37,7 @@ FILE uart_output = FDEV_SETUP_STREAM(USART_Transmit, NULL, _FDEV_SETUP_WRITE);
 FILE uart_input = FDEV_SETUP_STREAM(NULL, USART_Receive, _FDEV_SETUP_READ);
 
 
-int8_t password_handle_key(char *buffer, uint8_t *index);
+int8_t password_handle_key(char *buffer, uint8_t *cursor);
 
 void password_handle();
 
@@ -141,18 +141,37 @@ int main(void) {
     }
 }
 
+
+/**
+ @brief   handles printing seconds to lcd.
+
+ handles second printing by checking first whether there is a need to update the screen.
+ @param   seconds current second.
+ @param   x lcd x position.
+ @param   y lcd y position.
+ @param   alarm_now current time.
+ @param   alarm_start time from the timeout start.
+ @return  none
+*/
 void lcd_second_handler(uint8_t *seconds, uint8_t x, uint8_t y, uint32_t alarm_now, uint32_t alarm_start) {
     uint8_t next_second = (ALARM_TIME - (alarm_now - alarm_start)) / 1000;
     char seconds_array[5];
     if (next_second != *seconds) {
         itoa(next_second, seconds_array, 9);
-        seconds = next_second;
+        *seconds = next_second;
         lcd_gotoxy(x, y);
         lcd_puts(seconds_array);
         lcd_puts("   ");
     }
 }
 
+/**
+ @brief   handles password reading and comparison.
+
+ Handles password reading loop.
+ @param   none
+ @return  none
+*/
 void password_handle() {
     uint64_t alarm_now;
     char password_buffer[10] = {'\0'};
@@ -213,8 +232,19 @@ void password_handle() {
     }
 }
 
-int8_t password_handle_key(char *buffer, uint8_t *index) {
-    if (*index > PWD_MAX_LENGTH) { return PWD_KEY_INDEX_ERR; }
+/**
+ @brief   handles individual keys from master.
+
+ Handles individual keys from master and modifys the buffer accordingly.
+ @param   buffer password buffer to modify.
+ @param   cursor current position on the array.
+ @return  status \b PWD_KEY_TIMEOUT Slave timed out from reading the key from user. \n
+                 \b PWD_KEY_STOP Slave send stop key. \n
+                 \b PWD_KEY_CONTINUE Everything ok, may continue reading next key. \n
+                 \b PWD_KEY_INDEX_ERR Index out of bounds. \n
+*/
+int8_t password_handle_key(char *buffer, uint8_t *cursor) {
+    if (*cursor > PWD_MAX_LENGTH) { return PWD_KEY_INDEX_ERR; }
     char key;
     int8_t status;
     switch (key = I2C_read_ack()) {
@@ -222,17 +252,17 @@ int8_t password_handle_key(char *buffer, uint8_t *index) {
             status = PWD_KEY_TIMEOUT;
             break;
         case KEYPAD_KEY_BACKSPACE:
-            *index = *index - 1;
-            buffer[*index] = '\0';
+            *cursor = *cursor - 1;
+            buffer[*cursor] = '\0';
             status = PWD_KEY_CONTINUE;
             break;
         case KEYPAD_KEY_ENTER:
             status = PWD_KEY_STOP;
             break;
         default:
-            buffer[*index] = key;
-            buffer[*index + 1] = '\0';
-            *index = *index + 1;
+            buffer[*cursor] = key;
+            buffer[*cursor + 1] = '\0';
+            *cursor = *cursor + 1;
             status = PWD_KEY_CONTINUE;
             break;
     }

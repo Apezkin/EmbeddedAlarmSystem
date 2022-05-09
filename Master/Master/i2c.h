@@ -45,8 +45,8 @@ uint8_t I2C_write_start(char slave_write_addr);
  @brief    Starts reading from the slave.
 
  @param    slave_read_addr the read address of the slave.
- @return   status   \b TWI_ACK_RECEIVED Slave responded with ACK \n
-                    \b TWI_NACK_RECEIVED Slave responded with NACK \n
+ @return   status   \b TWI_ACK_RECEIVED Slave responded with ACK. \n
+                    \b TWI_NACK_RECEIVED Slave responded with NACK. \n
                     \b TWI_START_FAILED Failed to start. \n
                     \b TWI_ERROR unexpected error. \n
 */
@@ -84,7 +84,7 @@ void I2C_stop();
  @param    data the byte to write to slave address.
  @return   status   \b TWI_ACK_RECEIVED was able to send the byte and received ACK from slave. \n
                     \b TWI_NACK_RECEIVED was able to send the byte and received NACK from slave. \n
-                    \b TWI_ERROR error sending byte \n
+                    \b TWI_ERROR error sending byte. \n
 */
 uint8_t I2C_write(char data);
 
@@ -93,8 +93,8 @@ uint8_t I2C_write(char data);
 
  Starts the connection, sends character, and stops the connection.
  @param    command the character to write to slave address.
- @return   status   \b TWI_OK was able to send the command \n
-                    \b TWI_ERROR could not send the command \n
+ @return   status   \b TWI_OK was able to send the command. \n
+                    \b TWI_ERROR could not send the command. \n
 */
 int8_t I2C_command_write(char command);
 

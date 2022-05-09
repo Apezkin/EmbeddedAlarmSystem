@@ -89,7 +89,7 @@ static uint8_t keypad_ScanKey();
 
 
 /***************************************************************************************************
-                   void KEYPAD_Init()
+                   void KEYPAD_init()
  ***************************************************************************************************
  * I/P Arguments:none
  * Return value : none
@@ -98,7 +98,7 @@ static uint8_t keypad_ScanKey();
         1.ROW lines are configured as Output.
         2.Column Lines are configured as Input.
  ***************************************************************************************************/
-void KEYPAD_Init()
+void KEYPAD_init()
 {
 	M_RowColDirection= C_RowOutputColInput_U8; // Configure Row lines as O/P and Column lines as I/P
 }
