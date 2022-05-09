@@ -7,30 +7,33 @@
 #include <avr/interrupt.h>
 
 ISR(TIMER1_COMPA_vect){
+    //switch port on/off to make sound.
     PORTE ^= (1 << PE3);
+    //for some reason has to enable interrupts after every interrupt. Otherwise deadlocks.
     sei();
 }
 
-void Buzzer_Init() {
+void buzzer_init() {
 
+    //clean clock
     TCCR1A = 0;
     TCCR1B = 0;
-    //TCCR3A |= 1 << WGM30 | 1 << WGM31 | 1 << COM3A1;
-    TCCR1B |= 1 << WGM12 | 1 << CS10; //CS00 was shifted into TCCROA#
-    TCCR1B = (TCCR1B & 0b11111000) | 0b001;
-    OCR1A = F_CPU / 32 / 2 / 64 - 1;
 
-    //TIMSK3 |= 1 << OCIE3A;
+    TCCR1B |= 1 << WGM12 | 1 << CS10;
+    TCCR1B = (TCCR1B & 0b11111000) | 0b001;
+
+    // set frequency
+    OCR1A = F_CPU / 32 / 2 / 64 - 1;
 }
 
 void Start_Buzzing() {
-    //PORTE |= (1 << PE3);
+    //enable COMPA interrupt to start buzzing.
     TIMSK1 |= 1 << OCIE1A;
-    //Buzzer_Init();
-    //TCCR3B |= (1 << 0); // set prescaling to 1 (no prescaling)
 }
 
 void Stop_Buzzing() {
+    //disable COMPA interrupt to start buzzing.
     TIMSK1 &= ~(1 << OCIE1A);
+    //set buzzer pin off.
     PORTE &= ~(1 << PE3);
 }
