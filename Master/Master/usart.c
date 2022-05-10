@@ -12,12 +12,14 @@ void USART_init(uint16_t ubrr)
 
 int USART_Transmit(char data, FILE *stream)
 {
-    while(!(UCSR0A & (1 << UDRE0)));
+    while(!(UCSR0A & (1 << UDRE0))){
+    }
     UDR0 = data;
 }
 
 int USART_Receive(FILE *stream)
 {
-    while(!(UCSR0A & (1 << UDRE0)));
+    while(!(UCSR0A & (1 << UDRE0))){
+    }
     return UDR0;
 }

@@ -30,8 +30,8 @@
 #include "buzzer.h"
 
 typedef enum {
-    Idle, StartAlarm, StopAlarm, Fail, HandleKeypad, 
-	readMotion, WrongPassword, KeyPadTimeout, TooLongPassword
+    Idle, StartAlarm, StopAlarm, Fail, HandleKeypad,
+    readMotion, WrongPassword, KeyPadTimeout, TooLongPassword
 } STATE;
 STATE g_STATE = Idle;
 
@@ -156,8 +156,8 @@ int main(void) {
  @return  none
 */
 void lcd_second_handler(
-	uint8_t *seconds, uint8_t x, uint8_t y, 
-	uint32_t alarm_now, uint32_t alarm_start) {
+        uint8_t *seconds, uint8_t x, uint8_t y,
+        uint32_t alarm_now, uint32_t alarm_start) {
     uint8_t next_second = (ALARM_TIME - (alarm_now - alarm_start)) / 1000;
     char seconds_array[5];
     if (next_second != *seconds) {
@@ -256,8 +256,10 @@ int8_t password_handle_key(char *buffer, uint8_t *cursor) {
             status = PWD_KEY_TIMEOUT;
             break;
         case KEYPAD_KEY_BACKSPACE:
-            *cursor = *cursor - 1;
-            buffer[*cursor] = '\0';
+            if (*cursor > 0) {
+                *cursor = *cursor - 1;
+                buffer[*cursor] = '\0';
+            }
             status = PWD_KEY_CONTINUE;
             break;
         case KEYPAD_KEY_ENTER:
