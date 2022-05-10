@@ -3,6 +3,7 @@
 //
 
 #include "millis.h"
+#include "main.h"
 
 volatile unsigned long ms;
 

@@ -1,8 +1,9 @@
 //
-// Created by lut on 29.4.2022.
+// Created by aksu-lut on 29.4.2022.
 //
 
 #include "buzzer.h"
+#include "main.h"
 #include <avr/io.h>
 #include <avr/interrupt.h>
 

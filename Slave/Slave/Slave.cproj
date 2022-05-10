@@ -126,6 +126,12 @@
     <Compile Include="delay.h">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="i2c.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="i2c.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="keypad.c">
       <SubType>compile</SubType>
     </Compile>
@@ -133,6 +139,15 @@
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="main.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="main.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="millis.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="millis.h">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="stdutils.h">

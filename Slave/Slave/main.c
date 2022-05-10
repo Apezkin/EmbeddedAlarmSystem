@@ -1,11 +1,12 @@
-#define F_CPU 16000000UL
-#define FOSC 16000000UL // Clock Speed
+#define FOSC 16000000UL
 #define BAUD 9600
 #define MYUBRR (FOSC/16/BAUD-1)
 #define SLAVE_ADDRESS 0x20
 
 #define READ_KEYPAD_CHAR 'k'
 #define READ_MOTION 'm'
+
+#include "main.h"
 #include <avr/io.h>
 #include <util/delay.h>
 #include <stdio.h>
@@ -15,10 +16,10 @@
 #include "millis.h"
 #include "i2c.h"
 
-enum state {
+typedef enum {
     Idle, ReadKeypad, ReadMotionSensor, Fault
-};
-enum state g_STATE = Idle;
+} STATE;
+STATE g_STATE = Idle;
 volatile uint8_t motionSensed = 0;
 FILE uart_output = FDEV_SETUP_STREAM(USART_Transmit, NULL, _FDEV_SETUP_WRITE);
 FILE uart_input = FDEV_SETUP_STREAM(NULL, USART_Receive, _FDEV_SETUP_READ);
@@ -29,8 +30,8 @@ FILE uart_input = FDEV_SETUP_STREAM(NULL, USART_Receive, _FDEV_SETUP_READ);
  @param   receivedChar character to parse
  @return  state enum. Default is idle.
 */
-enum state state_parse(char receivedChar) {
-    enum state state;
+STATE state_parse(char receivedChar) {
+    STATE state;
     switch (receivedChar) {
         case READ_KEYPAD_CHAR:
             state = ReadKeypad;

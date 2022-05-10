@@ -1,4 +1,4 @@
-#define F_CPU 16000000UL
+
 #define BAUD 9600
 #define MYUBRR (F_CPU/16/BAUD-1)
 #define ALARM_TIME 5000L
@@ -16,6 +16,7 @@
 
 #define MOTION_READ_COMMAND 'm'
 
+#include "main.h"
 #include <avr/io.h>
 #include <util/delay.h>
 #include "lcd.h"
@@ -28,10 +29,11 @@
 #include "millis.h"
 #include "buzzer.h"
 
-enum State {
-    Idle, StartAlarm, StopAlarm, Fail, HandleKeypad, readMotion, WrongPassword, KeyPadTimeout, TooLongPassword
-};
-enum State g_STATE = Idle;
+typedef enum {
+    Idle, StartAlarm, StopAlarm, Fail, HandleKeypad, 
+	readMotion, WrongPassword, KeyPadTimeout, TooLongPassword
+} STATE;
+STATE g_STATE = Idle;
 
 FILE uart_output = FDEV_SETUP_STREAM(USART_Transmit, NULL, _FDEV_SETUP_WRITE);
 FILE uart_input = FDEV_SETUP_STREAM(NULL, USART_Receive, _FDEV_SETUP_READ);
@@ -153,7 +155,9 @@ int main(void) {
  @param   alarm_start time from the timeout start.
  @return  none
 */
-void lcd_second_handler(uint8_t *seconds, uint8_t x, uint8_t y, uint32_t alarm_now, uint32_t alarm_start) {
+void lcd_second_handler(
+	uint8_t *seconds, uint8_t x, uint8_t y, 
+	uint32_t alarm_now, uint32_t alarm_start) {
     uint8_t next_second = (ALARM_TIME - (alarm_now - alarm_start)) / 1000;
     char seconds_array[5];
     if (next_second != *seconds) {
