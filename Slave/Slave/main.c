@@ -16,9 +16,12 @@
 #include "millis.h"
 #include "i2c.h"
 
-typedef enum {
+typedef enum 
+{
     Idle, ReadKeypad, ReadMotionSensor, Fault
-} STATE;
+} 
+STATE;
+
 STATE g_STATE = Idle;
 volatile uint8_t motionSensed = 0;
 FILE uart_output = FDEV_SETUP_STREAM(USART_Transmit, NULL, _FDEV_SETUP_WRITE);
@@ -30,9 +33,11 @@ FILE uart_input = FDEV_SETUP_STREAM(NULL, USART_Receive, _FDEV_SETUP_READ);
  @param   receivedChar character to parse
  @return  state enum. Default is idle.
 */
-STATE state_parse(char receivedChar) {
+STATE state_parse(char receivedChar) 
+{
     STATE state;
-    switch (receivedChar) {
+    switch (receivedChar) 
+	{
         case READ_KEYPAD_CHAR:
             state = ReadKeypad;
             break;
@@ -51,9 +56,11 @@ STATE state_parse(char receivedChar) {
  @param   none
  @return  none
 */
-void motion_check() {
+void motion_check() 
+{
     uint8_t motionState = (PINB & (1 << PB1));
-    if (motionState && motionSensed != 1) {
+    if (motionState && motionSensed != 1) 
+	{
         motionSensed = 1;
     }
 }
@@ -63,14 +70,18 @@ void motion_check() {
  @param   none
  @return  none
 */
-void handleMotion() {
+void handleMotion() 
+{
     uint8_t twi_status;
-    switch (I2C_slave_listen()) {
+    switch (I2C_slave_listen()) 
+	{
         case SLAVE_WRITE:
             motion_check();
-            do {
+            do 
+			{
                 twi_status = I2C_slave_transmit(motionSensed);
-            } while (twi_status == MASTER_ACK_RECEIVED);
+            } 
+			while (twi_status == MASTER_ACK_RECEIVED);
             motionSensed = 0;
             g_STATE = Idle;
             break;
@@ -82,7 +93,8 @@ void handleMotion() {
 
 }
 
-int main(void) {
+int main(void) 
+{
     DDRB &= ~(1 << PB1); //input
     DDRB |= (1 << PB2); //output
 
@@ -102,10 +114,13 @@ int main(void) {
 
     int8_t Ack_status;
 
-    while (1) {
-        switch (g_STATE) {
+    while (1) 
+	{
+        switch (g_STATE) 
+		{
             case Idle:
-                switch (I2C_slave_listen()) {
+                switch (I2C_slave_listen()) 
+				{
                     case SLAVE_READ:
                         I2C_read_to_buffer(read_buff, 1);
                         g_STATE = state_parse(read_buff[0]);
@@ -116,13 +131,17 @@ int main(void) {
                 }
                 break;
             case ReadKeypad:
-                switch (I2C_slave_listen()) {
+                switch (I2C_slave_listen()) 
+				{
                     case SLAVE_WRITE:
-                        do {
+                        do 
+						{
                             keypadKey = KEYPAD_GetKey(50);
                             Ack_status = I2C_slave_transmit(keypadKey);
-                        } while (Ack_status == MASTER_ACK_RECEIVED);
-                        g_STATE = Idle;
+                        } 
+						while (Ack_status == MASTER_ACK_RECEIVED);
+                        
+						g_STATE = Idle;
                         break;
                     case SLAVE_READ:
                         g_STATE = Fault;

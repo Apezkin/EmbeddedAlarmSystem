@@ -17,14 +17,17 @@ void USART_init(uint16_t ubrr) // unsigned int
 
 int USART_Transmit(char data, FILE *stream) {
 
-    while (!(UCSR0A & (1 << UDRE0))) { ;
+    while (!(UCSR0A & (1 << UDRE0))) 
+	{ 
     }
     UDR0 = data;
+	return 0;
 }
 
 int USART_Receive(FILE *stream) {
 
-    while (!(UCSR0A & (1 << UDRE0))) { ;
+    while (!(UCSR0A & (1 << UDRE0))) 
+	{ ;
     }
     return UDR0;
 }
