@@ -10,11 +10,11 @@
 #define SLAVE_WRITE 1
 #define SLAVE_COMMON 2
 
-#define MASTER_STOP -1
+#define MASTER_STOP 1
 #define MASTER_ACK_RECEIVED 0
-#define MASTER_NACK_RECEIVED -2
-#define MASTER_ACK_LAST_BYTE_RECEIVED -3
-#define MASTER_ERROR -4
+#define MASTER_NACK_RECEIVED 2
+#define MASTER_ACK_LAST_BYTE_RECEIVED 3
+#define MASTER_ERROR 4
 /**
  @brief    Initializes slave for I2C communication.
 
